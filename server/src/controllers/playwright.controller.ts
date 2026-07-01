@@ -18,9 +18,9 @@ export const runTest = (
   req: Request,
   res: Response
 ) => {
-    console.log("Run endpoint hit");
+  const { name } = req.body;
 
-  playwright.runTest();
+  playwright.runTest(name);
 
   res.json({
     success: true,
@@ -69,19 +69,26 @@ export const getTests = (
   });
 };
 
-// export const loadTest = (
-//   req: Request,
-//   res: Response
-// ) => {
-//   const { name } = req.params;
+export const loadTest = (
+  req: Request,
+  res: Response
+) => {
+  const name = String(req.params.name);
 
-//   const code = playwright.loadTest(name);
+  try {
+    const code = playwright.loadTest(name);
 
-//   res.json({
-//     success: true,
-//     code,
-//   });
-// };
+    res.json({
+      success: true,
+      code,
+    });
+  } catch {
+    res.status(404).json({
+      success: false,
+      message: "Test not found.",
+    });
+  }
+};
 
 
 

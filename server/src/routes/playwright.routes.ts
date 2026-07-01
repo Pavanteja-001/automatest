@@ -5,6 +5,7 @@ import {
   getGeneratedCode,
   saveTest,
   getTests,
+  loadTest,
 } from "../controllers/playwright.controller";
 
 const router = Router();
@@ -19,6 +20,6 @@ router.post("/save", saveTest);
 
 router.get("/tests", getTests);
 
-// router.get("/tests/:name", loadTest);
+router.get("/tests/:name", loadTest);
 
 export default router;

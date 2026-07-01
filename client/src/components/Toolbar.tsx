@@ -1,11 +1,13 @@
 interface Props {
   onRecord: () => void;
   onRun: () => void;
+  onSave: () => void;
 }
 
 export default function Toolbar({
   onRecord,
   onRun,
+  onSave,
 }: Props) {
   return (
     <div
@@ -23,6 +25,10 @@ export default function Toolbar({
 
       <button onClick={onRun}>
         ▶ Run
+      </button>
+
+      <button onClick={onSave}>
+        💾 Save
       </button>
     </div>
   );

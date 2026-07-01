@@ -68,7 +68,7 @@ export class PlaywrightService {
     return fs.readFileSync(this.outputPath, "utf8");
   }
 
-runTest() {
+runTest(name?: string) {
 
     if (this.runningTest) {
 
@@ -77,12 +77,23 @@ runTest() {
         return;
     }
 
+    const fileName = name ? path.basename(name) : "current.spec.ts";
+    const filePath = path.join("generated", fileName);
+
+    if (!fs.existsSync(path.join(path.dirname(this.outputPath), fileName))) {
+
+        getIO().emit("terminal", `\nTest file not found: ${fileName}\n`);
+
+        return;
+    }
+
     this.runningTest = spawn(
         "npx",
         [
             "playwright",
-    "test",
-    "generated/current.spec.ts --headed"
+            "test",
+            filePath,
+            "--headed"
         ],
         {
             shell: true,
@@ -90,7 +101,7 @@ runTest() {
         }
     );
 
-    getIO().emit("test-started");
+    getIO().emit("test-started", { name: fileName });
 
     this.runningTest.stdout.on("data", (data) => {
 
@@ -113,7 +124,8 @@ runTest() {
     this.runningTest.on("close", (code) => {
 
         getIO().emit("test-complete", {
-            exitCode: code
+            exitCode: code,
+            name: fileName
         });
 
         this.runningTest = null;
@@ -124,11 +136,11 @@ runTest() {
 
 saveTest(name: string, code: string) {
 
+    const safeName = path.basename(name).replace(/\.spec\.ts$/, "");
+
     const file = path.join(
-        this.outputPath.replace(
-            "current.spec.ts",
-            `${name}.spec.ts`
-        )
+        path.dirname(this.outputPath),
+        `${safeName}.spec.ts`
     );
 
     fs.writeFileSync(file, code);
@@ -151,8 +163,12 @@ loadTest(name: string) {
 
     const file = path.join(
         path.dirname(this.outputPath),
-        name
+        path.basename(name)
     );
+
+    if (!fs.existsSync(file)) {
+        throw new Error("Test not found");
+    }
 
     return fs.readFileSync(
         file,
