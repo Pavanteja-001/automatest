@@ -102,6 +102,10 @@ export class FilesystemService {
       throw new Error("Cannot delete root");
     }
 
+    if (relativePath.replace(/\\/g, "/") === "login.config.json") {
+      throw new Error("login.config.json cannot be deleted");
+    }
+
     if (!fs.existsSync(target)) {
       throw new Error("Not found");
     }

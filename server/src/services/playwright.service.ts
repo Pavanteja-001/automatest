@@ -20,7 +20,7 @@ export class PlaywrightService {
     return Boolean(this.runningTest) || this.isStarting;
   }
 
-  startRecording() {
+  async startRecording(autoLogin?: boolean) {
     if (!fs.existsSync(path.dirname(this.outputPath))) {
       fs.mkdirSync(path.dirname(this.outputPath), { recursive: true });
     }
@@ -30,14 +30,27 @@ export class PlaywrightService {
       fs.unlinkSync(this.outputPath);
     }
 
+    const args = ["playwright", "codegen", "--output", this.outputPath];
+
+    if (autoLogin) {
+      getIO().emit("terminal", "\x1b[35m\nAuto Login: signing in before opening the recorder...\x1b[0m\n");
+
+      try {
+        const authStatePath = await this.authService.login();
+        args.push("--load-storage", authStatePath);
+        getIO().emit(
+          "terminal",
+          "\x1b[35mAuto Login: session ready — pasting the app URL will land you already signed in.\x1b[0m\n"
+        );
+      } catch (err) {
+        getIO().emit("terminal", `\x1b[31m\nAuto Login failed: ${(err as Error).message}\x1b[0m\n`);
+        getIO().emit("terminal", "\x1b[33mOpening the recorder without auto login.\x1b[0m\n");
+      }
+    }
+
     const process = spawn(
       "npx",
-      [
-        "playwright",
-        "codegen",
-        "--output",
-        this.outputPath
-      ],
+      args,
       {
         shell: true,
         stdio: "pipe"

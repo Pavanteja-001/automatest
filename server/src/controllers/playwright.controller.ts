@@ -7,7 +7,9 @@ export const startRecording = (
   req: Request,
   res: Response
 ) => {
-  playwright.startRecording();
+  const { autoLogin } = req.body;
+
+  playwright.startRecording(Boolean(autoLogin));
 
   res.json({
     success: true,

@@ -134,7 +134,7 @@ export default function Studio() {
   }
 
   async function startRecording() {
-    await api.post("/playwright/start");
+    await api.post("/playwright/start", { autoLogin });
   }
 
   async function runTest() {

@@ -70,6 +70,7 @@ function TreeRow({
   const isFolder = node.type === "folder";
   const isRunnable = isFolder || node.name.endsWith(".ts");
   const isSelected = !isFolder && selected === node.path;
+  const isProtected = node.path === "login.config.json";
 
   function handleRowClick() {
     if (isFolder) {
@@ -106,6 +107,12 @@ function TreeRow({
           {node.name}
         </span>
 
+        {isProtected && (
+          <span title="Protected file — required for Auto Login, cannot be deleted" style={protectedIconStyle}>
+            &#128274;
+          </span>
+        )}
+
         {onRunTest && isRunnable && (hovered || menuOpen) && (
           <button
             title={isFolder ? "Run all tests in this folder" : "Run this test"}
@@ -119,7 +126,7 @@ function TreeRow({
           </button>
         )}
 
-        {(onDeleteNode || onAddFile) && (hovered || menuOpen) && (
+        {!isProtected && (onDeleteNode || onAddFile) && (hovered || menuOpen) && (
           <button
             title="More options"
             onClick={(e) => {
@@ -206,6 +213,12 @@ const nameStyle: CSSProperties = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+};
+
+const protectedIconStyle: CSSProperties = {
+  flexShrink: 0,
+  fontSize: 11,
+  opacity: 0.6,
 };
 
 const actionButtonStyle: CSSProperties = {
