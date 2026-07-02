@@ -10,6 +10,8 @@ import {
 
 interface Props {
   open: boolean;
+  running?: boolean;
+  onStop?: () => void;
 }
 
 const TERMINAL_HEIGHT = 320;
@@ -19,7 +21,7 @@ const shortcutLabel =
     ? "⌘ `"
     : "Ctrl+`";
 
-export default function Terminal({ open }: Props) {
+export default function Terminal({ open, running, onStop }: Props) {
   const divRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -121,6 +123,21 @@ export default function Terminal({ open }: Props) {
           <span style={{ fontSize: 11, opacity: 0.5, color: "#cccccc" }}>
             {shortcutLabel} to toggle
           </span>
+
+          <button
+            title={running ? "Stop the running test" : "No test is currently running"}
+            onClick={onStop}
+            disabled={!running}
+            style={{
+              ...discardButtonStyle,
+              opacity: running ? 1 : 0.4,
+              cursor: running ? "pointer" : "not-allowed",
+              borderColor: running ? "#f87171" : "#3c3c3c",
+              color: running ? "#f87171" : "#cccccc",
+            }}
+          >
+            &#9209; Stop
+          </button>
 
           <button
             title="Clear terminal"

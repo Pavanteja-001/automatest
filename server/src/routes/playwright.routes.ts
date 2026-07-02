@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   startRecording,
   runTest,
+  stopTest,
+  getStatus,
   getGeneratedCode,
   saveTest,
   getTests,
@@ -21,6 +23,10 @@ const router = Router();
 router.post("/start", startRecording);
 
 router.post("/run", runTest);
+
+router.post("/stop", stopTest);
+
+router.get("/status", getStatus);
 
 router.get("/code", getGeneratedCode);
 

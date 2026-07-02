@@ -5,6 +5,10 @@ interface Props {
   onAddTime: () => void;
   slowMotion: boolean;
   onToggleSlowMotion: () => void;
+  headed: boolean;
+  onToggleHeaded: () => void;
+  autoLogin: boolean;
+  onToggleAutoLogin: () => void;
 }
 
 export default function Toolbar({
@@ -14,6 +18,10 @@ export default function Toolbar({
   onAddTime,
   slowMotion,
   onToggleSlowMotion,
+  headed,
+  onToggleHeaded,
+  autoLogin,
+  onToggleAutoLogin,
 }: Props) {
   return (
     <div
@@ -51,6 +59,38 @@ export default function Toolbar({
         }}
       >
         🐢 -3x
+      </button>
+
+      <button
+        title={
+          headed
+            ? "Headed: running tests opens a visible browser window"
+            : "Headless: running tests stays in the background, results in the terminal"
+        }
+        onClick={onToggleHeaded}
+        style={{
+          background: headed ? "#2563eb" : undefined,
+          color: headed ? "white" : undefined,
+          fontWeight: headed ? "bold" : "normal",
+        }}
+      >
+        🖥 Headed
+      </button>
+
+      <button
+        title={
+          autoLogin
+            ? "Auto Login is ON: the token from login.config.json will be injected before every run"
+            : "Auto Login is OFF: tests run exactly as written, no token is used"
+        }
+        onClick={onToggleAutoLogin}
+        style={{
+          background: autoLogin ? "#15803d" : undefined,
+          color: autoLogin ? "white" : undefined,
+          fontWeight: autoLogin ? "bold" : "normal",
+        }}
+      >
+        🔐 Auto Login
       </button>
     </div>
   );

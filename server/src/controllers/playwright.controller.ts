@@ -18,12 +18,33 @@ export const runTest = (
   req: Request,
   res: Response
 ) => {
-  const { name, slowMo } = req.body;
+  const { name, slowMo, headed, autoLogin } = req.body;
 
-  playwright.runTest(name, slowMo);
+  playwright.runTest(name, slowMo, Boolean(headed), Boolean(autoLogin));
 
   res.json({
     success: true,
+  });
+};
+
+export const stopTest = (
+  req: Request,
+  res: Response
+) => {
+  playwright.stopTest();
+
+  res.json({
+    success: true,
+  });
+};
+
+export const getStatus = (
+  req: Request,
+  res: Response
+) => {
+  res.json({
+    success: true,
+    running: playwright.isRunning(),
   });
 };
 

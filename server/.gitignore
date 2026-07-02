@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Auto Login: derived storage state containing a live session token
+.auth
+
+# Auto Login: contains a plaintext password
+generated/login.config.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

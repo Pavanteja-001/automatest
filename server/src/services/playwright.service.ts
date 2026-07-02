@@ -1,8 +1,9 @@
-import { spawn } from "child_process";
+import { spawn, exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import { getIO } from "../socket/socket";
 import { ChildProcessWithoutNullStreams } from "child_process";
+import { AuthService } from "./auth.service";
 
 export class PlaywrightService {
   private outputPath = path.join(
@@ -12,6 +13,12 @@ export class PlaywrightService {
   );
 
   private runningTest: ChildProcessWithoutNullStreams | null = null;
+  private isStarting = false;
+  private authService = new AuthService();
+
+  isRunning(): boolean {
+    return Boolean(this.runningTest) || this.isStarting;
+  }
 
   startRecording() {
     if (!fs.existsSync(path.dirname(this.outputPath))) {
@@ -83,9 +90,9 @@ private resolveTestPath(relativePath: string): { absolutePath: string; posixPath
     };
 }
 
-runTest(name?: string, slowMo?: number) {
+async runTest(name?: string, slowMo?: number, headed?: boolean, autoLogin?: boolean) {
 
-    if (this.runningTest) {
+    if (this.runningTest || this.isStarting) {
 
         getIO().emit("terminal", "\x1b[33m\nA test is already running.\x1b[0m\n");
 
@@ -111,25 +118,54 @@ runTest(name?: string, slowMo?: number) {
         return;
     }
 
+    this.isStarting = true;
+
+    let authStatePath: string | undefined;
+
+    if (autoLogin) {
+
+        getIO().emit("terminal", "\x1b[35m\nAuto Login: authenticating...\x1b[0m\n");
+
+        try {
+            authStatePath = await this.authService.login();
+            getIO().emit("terminal", "\x1b[35mAuto Login: token acquired, injecting into the browser session.\x1b[0m\n");
+        } catch (err) {
+            getIO().emit("terminal", `\x1b[31m\nAuto Login failed: ${(err as Error).message}\x1b[0m\n`);
+            this.isStarting = false;
+            return;
+        }
+    }
+
     const slowMoMs = slowMo && slowMo > 0 ? slowMo : 0;
+
+    const args = ["playwright", "test", filePath];
+
+    if (headed) {
+        args.push("--headed");
+    }
 
     this.runningTest = spawn(
         "npx",
-        [
-            "playwright",
-            "test",
-            filePath,
-            "--headed"
-        ],
+        args,
         {
             shell: true,
             stdio: "pipe",
             env: {
                 ...process.env,
                 PW_SLOW_MO: String(slowMoMs),
-                FORCE_COLOR: "1"
+                FORCE_COLOR: "1",
+                ...(authStatePath ? { PW_AUTH_STATE_PATH: authStatePath } : {})
             }
         }
+    );
+
+    this.isStarting = false;
+
+    getIO().emit(
+        "terminal",
+        headed
+            ? "\x1b[36m\nRunning in headed mode — a browser window will open.\x1b[0m\n"
+            : "\x1b[90m\nRunning headless in the background.\x1b[0m\n"
     );
 
     if (slowMoMs > 0) {
@@ -166,6 +202,32 @@ runTest(name?: string, slowMo?: number) {
         this.runningTest = null;
 
     });
+
+}
+
+stopTest() {
+
+    if (!this.runningTest || !this.runningTest.pid) {
+
+        getIO().emit("terminal", "\x1b[33m\nNo test is currently running.\x1b[0m\n");
+
+        return;
+    }
+
+    const pid = this.runningTest.pid;
+
+    getIO().emit("terminal", "\x1b[33m\nStopping test...\x1b[0m\n");
+
+    if (process.platform === "win32") {
+        // spawn used shell:true, so the tree (npx -> node -> browser) must be killed, not just the shell.
+        exec(`taskkill /PID ${pid} /T /F`);
+    } else {
+        try {
+            process.kill(-pid, "SIGTERM");
+        } catch {
+            this.runningTest.kill("SIGTERM");
+        }
+    }
 
 }
 
