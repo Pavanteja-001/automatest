@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test('test', async ({ page }) => {
-  await page.goto('https://beta.openplanai.com/login');
-  await page.getByRole('textbox', { name: 'Work Email' }).click();
-  await page.getByRole('textbox', { name: 'Work Email' }).fill('rajeshbirlangi2000@gmail.com');
-  await page.getByRole('textbox', { name: 'Password' }).click();
-  await page.getByRole('textbox', { name: 'Password' }).fill('Rajesh@123');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
-  await page.getByRole('link', { name: 'My Day' }).click();
-  await page.getByRole('link', { name: 'Chat' }).click();
+  await page.goto('https://www.irootforsatyadev.com/');
+  await page.getByRole('button', { name: 'Yes ❤️' }).click();
+  await page.getByRole('textbox', { name: 'Share your thoughts...' }).click();
+  await page.getByRole('textbox', { name: 'Share your thoughts...' }).fill('thakur....');
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await page.getByRole('button', { name: 'Next chevron_right' }).click();
+  await page.getByRole('textbox', { name: 'Enter your name...' }).click();
+  await page.getByRole('textbox', { name: 'Enter your name...' }).fill('thakur');
+  await page.getByRole('button', { name: 'Prepare Portrait Kit' }).click();
+  await page.getByRole('button', { name: 'chevron_backward' }).click();
 });
