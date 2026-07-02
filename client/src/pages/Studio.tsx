@@ -18,7 +18,10 @@ export default function Studio() {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [slowMotion, setSlowMotion] = useState(false);
+  const [headed, setHeaded] = useState(false);
+  const [autoLogin, setAutoLogin] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(true);
+  const [testRunning, setTestRunning] = useState(false);
   const editorRef = useRef<CodeEditorHandle>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ path: string; code: string } | null>(null);
@@ -41,6 +44,11 @@ export default function Studio() {
 
   useEffect(() => {
     loadTree();
+    syncTestStatus();
+
+    socket.on("connect", () => {
+      syncTestStatus();
+    });
 
     socket.on("terminal", (message) => {
       writeTerminal(message);
@@ -52,11 +60,13 @@ export default function Studio() {
     });
 
     socket.on("test-started", (data) => {
+      setTestRunning(true);
       writeTerminal("");
       writeTerminal(`\x1b[36m\x1b[1m▶ Running ${data?.name ?? "test"}...\x1b[0m`);
     });
 
     socket.on("test-complete", ({ exitCode }) => {
+      setTestRunning(false);
       const passed = exitCode === 0;
       const color = passed ? "\x1b[32m" : "\x1b[31m";
       const label = passed ? "✓ Passed" : `✕ Failed (exit code ${exitCode})`;
@@ -118,6 +128,11 @@ export default function Studio() {
     setTree(res.data.tree);
   }
 
+  async function syncTestStatus() {
+    const res = await api.get("/playwright/status");
+    setTestRunning(Boolean(res.data.running));
+  }
+
   async function startRecording() {
     await api.post("/playwright/start");
   }
@@ -128,6 +143,8 @@ export default function Studio() {
     await api.post("/playwright/run", {
       name: selected ?? undefined,
       slowMo: slowMotion ? SLOW_MOTION_MS : undefined,
+      headed,
+      autoLogin,
     });
   }
 
@@ -137,11 +154,25 @@ export default function Studio() {
     await api.post("/playwright/run", {
       name,
       slowMo: slowMotion ? SLOW_MOTION_MS : undefined,
+      headed,
+      autoLogin,
     });
+  }
+
+  async function stopTest() {
+    await api.post("/playwright/stop");
   }
 
   function toggleSlowMotion() {
     setSlowMotion((prev) => !prev);
+  }
+
+  function toggleHeaded() {
+    setHeaded((prev) => !prev);
+  }
+
+  function toggleAutoLogin() {
+    setAutoLogin((prev) => !prev);
   }
 
   async function selectDraft() {
@@ -228,6 +259,10 @@ export default function Studio() {
         onAddTime={addTime}
         slowMotion={slowMotion}
         onToggleSlowMotion={toggleSlowMotion}
+        headed={headed}
+        onToggleHeaded={toggleHeaded}
+        autoLogin={autoLogin}
+        onToggleAutoLogin={toggleAutoLogin}
       />
 
       <div
@@ -264,7 +299,7 @@ export default function Studio() {
             />
           </div>
 
-          <Terminal open={terminalOpen} />
+          <Terminal open={terminalOpen} running={testRunning} onStop={stopTest} />
         </div>
       </div>
     </div>

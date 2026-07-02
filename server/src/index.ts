@@ -3,6 +3,9 @@ import { Server } from "socket.io";
 
 import app from "./app";
 import { initializeSocket } from "./socket/socket";
+import { AuthService } from "./services/auth.service";
+
+new AuthService().ensureConfigTemplate();
 
 const server = http.createServer(app);
 
