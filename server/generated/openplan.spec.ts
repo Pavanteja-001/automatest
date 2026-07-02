@@ -1,0 +1,33 @@
+import { test, expect } from '@playwright/test';
+
+test('test', async ({ page }) => {
+  await page.goto('https://beta.openplanai.com/login');
+  await page.getByRole('textbox', { name: 'Work Email' }).click();
+  await page.getByRole('textbox', { name: 'Work Email' }).fill('pifadoy535@kinws.com');
+  await page.getByRole('textbox', { name: 'Password' }).click();
+  await page.getByRole('textbox', { name: 'Password' }).fill('Pavan@123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'P', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Profile' }).click();
+  await page.getByRole('tab', { name: 'Notifications Soon' }).click();
+  await page.getByRole('tab', { name: 'Appearance' }).click();
+  await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+  await page.getByRole('link', { name: 'Integrations' }).click();
+  await page.getByRole('textbox', { name: 'Search integrations...' }).click();
+  await page.getByRole('textbox', { name: 'Search integrations...' }).fill('');
+  await page.getByRole('link', { name: 'Chat' }).click();
+  await page.getByRole('tab', { name: 'DMs' }).click();
+  await page.getByRole('tab', { name: 'Groups' }).click();
+  await page.getByRole('button', { name: 'New Group', description: 'New Group' }).click();
+  await page.getByRole('textbox', { name: 'e.g. Design Team' }).fill('hhhh');
+  await page.getByRole('textbox', { name: 'What is this group about?' }).click();
+  await page.getByRole('textbox', { name: 'What is this group about?' }).fill('ghhhhh');
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('link', { name: 'My Day' }).click();
+  await page.getByRole('button', { name: 'Switch organization' }).click();
+  await page.getByRole('button', { name: 'Switch organization' }).click();
+  await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+  await page.getByRole('button', { name: 'P' }).click();
+  await page.getByRole('menuitem', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Danger' }).click();
+});

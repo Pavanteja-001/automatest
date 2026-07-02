@@ -1,0 +1,34 @@
+import { test, expect } from '@playwright/test';
+
+test('test', async ({ page }) => {
+  await page.goto('https://user.reaidy.io/');
+  await page.getByRole('textbox', { name: 'Email' }).click();
+  await page.getByRole('textbox', { name: 'Email' }).fill('rajeshbirlangi1999@gmail.com');
+  await page.getByRole('textbox', { name: 'Password' }).click();
+  await page.getByRole('textbox', { name: 'Password' }).fill('1234567890Q!');
+  await page.getByRole('button', { name: 'Login Now' }).click();
+  await page.getByRole('button', { name: 'Close' }).nth(1).click();
+  await page.getByRole('button', { name: 'BHAVAN KUMAR GEDILA' }).click();
+  await page.getByRole('button', { name: 'Profile' }).click();
+  await page.locator('div').filter({ hasText: /^Home$/ }).nth(1).click();
+  await page.getByRole('button', { name: 'Start Practice' }).click();
+  await page.getByRole('textbox', { name: 'Interview Topic' }).click();
+  await page.getByRole('textbox', { name: 'Interview Topic' }).fill('React');
+  await page.getByRole('checkbox', { name: 'I have a resume to upload' }).click();
+  await page.getByRole('button', { name: 'Start Interview' }).click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('listitem').filter({ hasText: 'Settings' }).getByRole('img').click();
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('checkbox', { name: 'I understand that this action' }).click();
+  await page.getByRole('tab', { name: 'Subscriptions' }).click();
+  await page.getByRole('tab', { name: 'Projects' }).click();
+  await page.getByRole('tab', { name: 'Education' }).click();
+  await page.getByRole('button', { name: 'Edit' }).nth(2).click();
+  await page.getByRole('textbox', { name: 'Description *' }).click();
+  await page.getByRole('textbox', { name: 'Description *' }).fill('Sdfsdsdsdsdsdsdfsdf');
+  await page.getByRole('button', { name: 'Update' }).click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button').nth(2).click();
+  await page.getByRole('tab', { name: 'Community' }).click();
+});
