@@ -7,15 +7,24 @@ interface LoginConfig {
   password?: string;
 }
 
+interface StorageStateCookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires: number;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: "Strict" | "Lax" | "None";
+}
+
 interface StorageState {
-  cookies: Record<string, unknown>[];
+  cookies: StorageStateCookie[];
   origins: {
     origin: string;
     localStorage?: { name: string; value: string }[];
   }[];
 }
-
-const DEFAULT_STORAGE_KEY = "authToken";
 
 const TOKEN_PATH_CANDIDATES = [
   "token",
@@ -74,7 +83,7 @@ export class AuthService {
     return value;
   }
 
-  private extractToken(body: unknown): string {
+  private extractBodyToken(body: unknown): string | undefined {
     for (const candidate of TOKEN_PATH_CANDIDATES) {
       const value = this.readAtPath(body, candidate);
 
@@ -83,24 +92,52 @@ export class AuthService {
       }
     }
 
-    throw new Error(
-      "Could not find a token in the login response. Looked for: " +
-        TOKEN_PATH_CANDIDATES.join(", ")
-    );
+    return undefined;
   }
 
-  private writeStorageState(token: string, loginUrl: string): string {
-    const origin = new URL(loginUrl).origin;
+  private parseSetCookie(raw: string, requestUrl: string): StorageStateCookie {
+    const parts = raw.split(";").map((p) => p.trim());
+    const [nameValue, ...attrs] = parts;
+    const eqIdx = nameValue.indexOf("=");
+    const name = nameValue.slice(0, eqIdx);
+    const value = nameValue.slice(eqIdx + 1);
 
-    const state: StorageState = {
-      cookies: [],
-      origins: [
-        {
-          origin,
-          localStorage: [{ name: DEFAULT_STORAGE_KEY, value: token }],
-        },
-      ],
-    };
+    let domain = new URL(requestUrl).hostname;
+    let cookiePath = "/";
+    let expires = -1;
+    let httpOnly = false;
+    let secure = false;
+    let sameSite: StorageStateCookie["sameSite"] = "Lax";
+
+    for (const attr of attrs) {
+      const eq = attr.indexOf("=");
+      const key = (eq === -1 ? attr : attr.slice(0, eq)).toLowerCase();
+      const val = eq === -1 ? "" : attr.slice(eq + 1);
+
+      if (key === "domain" && val) domain = val.replace(/^\./, "");
+      else if (key === "path" && val) cookiePath = val;
+      else if (key === "expires" && val) expires = Math.floor(new Date(val).getTime() / 1000);
+      else if (key === "max-age" && val) expires = Math.floor(Date.now() / 1000) + Number(val);
+      else if (key === "httponly") httpOnly = true;
+      else if (key === "secure") secure = true;
+      else if (key === "samesite" && val) {
+        const v = val.toLowerCase();
+        sameSite = v === "strict" ? "Strict" : v === "none" ? "None" : "Lax";
+      }
+    }
+
+    return { name, value, domain, path: cookiePath, expires, httpOnly, secure, sameSite };
+  }
+
+  private writeStorageState(cookies: StorageStateCookie[], bodyToken: string | undefined, loginUrl: string): string {
+    const state: StorageState = { cookies, origins: [] };
+
+    if (bodyToken) {
+      state.origins.push({
+        origin: new URL(loginUrl).origin,
+        localStorage: [{ name: "authToken", value: bodyToken }],
+      });
+    }
 
     fs.mkdirSync(this.stateDir, { recursive: true });
     fs.writeFileSync(this.stateFile, JSON.stringify(state, null, 2));
@@ -147,9 +184,27 @@ export class AuthService {
       throw new Error(`Login API returned status ${response.status}.`);
     }
 
-    const body = await response.json();
-    const token = this.extractToken(body);
+    const setCookieHeaders = response.headers.getSetCookie
+      ? response.headers.getSetCookie()
+      : [];
+    const cookies = setCookieHeaders.map((raw) => this.parseSetCookie(raw, config.loginUrl!));
 
-    return this.writeStorageState(token, config.loginUrl);
+    let bodyToken: string | undefined;
+
+    try {
+      const body = await response.json();
+      bodyToken = this.extractBodyToken(body);
+    } catch {
+      // Non-JSON response body — fine as long as auth came through as cookies.
+    }
+
+    if (cookies.length === 0 && !bodyToken) {
+      throw new Error(
+        "Login succeeded but no session cookie or token was found in the response. " +
+        "Could not determine how this app tracks the logged-in session."
+      );
+    }
+
+    return this.writeStorageState(cookies, bodyToken, config.loginUrl);
   }
 }
