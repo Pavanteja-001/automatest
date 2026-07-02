@@ -18,9 +18,9 @@ export const runTest = (
   req: Request,
   res: Response
 ) => {
-  const { name } = req.body;
+  const { name, slowMo } = req.body;
 
-  playwright.runTest(name);
+  playwright.runTest(name, slowMo);
 
   res.json({
     success: true,

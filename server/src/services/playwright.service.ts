@@ -68,7 +68,7 @@ export class PlaywrightService {
     return fs.readFileSync(this.outputPath, "utf8");
   }
 
-runTest(name?: string) {
+runTest(name?: string, slowMo?: number) {
 
     if (this.runningTest) {
 
@@ -78,7 +78,7 @@ runTest(name?: string) {
     }
 
     const fileName = name ? path.basename(name) : "current.spec.ts";
-    const filePath = path.join("generated", fileName);
+    const filePath = path.posix.join("generated", fileName);
 
     if (!fs.existsSync(path.join(path.dirname(this.outputPath), fileName))) {
 
@@ -86,6 +86,8 @@ runTest(name?: string) {
 
         return;
     }
+
+    const slowMoMs = slowMo && slowMo > 0 ? slowMo : 0;
 
     this.runningTest = spawn(
         "npx",
@@ -97,9 +99,17 @@ runTest(name?: string) {
         ],
         {
             shell: true,
-            stdio: "pipe"
+            stdio: "pipe",
+            env: {
+                ...process.env,
+                PW_SLOW_MO: String(slowMoMs)
+            }
         }
     );
+
+    if (slowMoMs > 0) {
+        getIO().emit("terminal", `\nSlow motion enabled (${slowMoMs}ms per step).\n`);
+    }
 
     getIO().emit("test-started", { name: fileName });
 
