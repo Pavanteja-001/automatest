@@ -5,6 +5,7 @@ interface LoginConfig {
   loginUrl?: string;
   email?: string;
   password?: string;
+  baseUrl?: string;
 }
 
 interface StorageStateCookie {
@@ -47,14 +48,29 @@ export class AuthService {
 
     const template = {
       _instructions:
-        "Fill in your application's login API details, then turn on 'Auto Login' in the toolbar to authenticate automatically before every test run.",
+        "Fill in your application's login API details, then turn on 'Auto Login' in the toolbar to authenticate automatically before every test run. " +
+        "baseUrl is optional — if set, clicking Record opens the recorder directly at that page instead of a blank browser.",
       loginUrl: "https://your-api.com/auth/login",
       email: "",
       password: "",
+      baseUrl: "",
     };
 
     fs.mkdirSync(path.dirname(this.configPath), { recursive: true });
     fs.writeFileSync(this.configPath, JSON.stringify(template, null, 2));
+  }
+
+  getBaseUrl(): string | undefined {
+    if (!fs.existsSync(this.configPath)) return undefined;
+
+    try {
+      const config: LoginConfig = JSON.parse(fs.readFileSync(this.configPath, "utf8"));
+      const baseUrl = config.baseUrl?.trim();
+
+      return baseUrl ? baseUrl : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private readConfig(): LoginConfig {

@@ -48,6 +48,13 @@ export class PlaywrightService {
       }
     }
 
+    const baseUrl = this.authService.getBaseUrl();
+
+    if (baseUrl) {
+      args.push(baseUrl);
+      getIO().emit("terminal", `\x1b[36m\nOpening recorder at ${baseUrl}...\x1b[0m\n`);
+    }
+
     const process = spawn(
       "npx",
       args,
