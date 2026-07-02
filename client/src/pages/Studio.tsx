@@ -18,9 +18,26 @@ export default function Studio() {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [slowMotion, setSlowMotion] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(true);
   const editorRef = useRef<CodeEditorHandle>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ path: string; code: string } | null>(null);
+
+  useEffect(() => {
+    function handleToggleTerminal(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.code === "Backquote") {
+        e.preventDefault();
+        e.stopPropagation();
+        setTerminalOpen((prev) => !prev);
+      }
+    }
+
+    window.addEventListener("keydown", handleToggleTerminal, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleToggleTerminal, true);
+    };
+  }, []);
 
   useEffect(() => {
     loadTree();
@@ -36,14 +53,15 @@ export default function Studio() {
 
     socket.on("test-started", (data) => {
       writeTerminal("");
-      writeTerminal("================================");
-      writeTerminal(`Running ${data?.name ?? "test"}...`);
-      writeTerminal("================================");
+      writeTerminal(`\x1b[36m\x1b[1m▶ Running ${data?.name ?? "test"}...\x1b[0m`);
     });
 
     socket.on("test-complete", ({ exitCode }) => {
+      const passed = exitCode === 0;
+      const color = passed ? "\x1b[32m" : "\x1b[31m";
+      const label = passed ? "✓ Passed" : `✕ Failed (exit code ${exitCode})`;
+      writeTerminal(`${color}\x1b[1m${label}\x1b[0m`);
       writeTerminal("");
-      writeTerminal(`Finished with exit code ${exitCode}`);
     });
 
     return () => {
@@ -155,6 +173,30 @@ export default function Studio() {
     await openFile(name);
   }
 
+  async function deleteNode(nodePath: string, type: "file" | "folder") {
+    const affectsSelected =
+      selected === nodePath ||
+      (type === "folder" && selected !== null && selected.startsWith(`${nodePath}/`));
+
+    if (affectsSelected && pendingSaveRef.current) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
+      pendingSaveRef.current = null;
+    }
+
+    await api.delete("/playwright/fs/node", { params: { path: nodePath } });
+
+    if (affectsSelected) {
+      setSelected(null);
+      setCode("");
+    }
+
+    await loadTree();
+  }
+
   function addTime() {
     editorRef.current?.insertAtCursor("await page.waitForTimeout(2000);\n");
   }
@@ -202,6 +244,7 @@ export default function Studio() {
           onRunTest={runSpecificTest}
           onCreateFolder={createFolder}
           onCreateFile={createFile}
+          onDeleteNode={deleteNode}
         />
 
         <div
@@ -209,9 +252,11 @@ export default function Studio() {
             flex: 1,
             display: "flex",
             flexDirection: "column",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
             <CodeEditor
               ref={editorRef}
               value={code}
@@ -219,7 +264,7 @@ export default function Studio() {
             />
           </div>
 
-          <Terminal />
+          <Terminal open={terminalOpen} />
         </div>
       </div>
     </div>

@@ -68,21 +68,45 @@ export class PlaywrightService {
     return fs.readFileSync(this.outputPath, "utf8");
   }
 
+private resolveTestPath(relativePath: string): { absolutePath: string; posixPath: string } {
+    const generatedRoot = path.dirname(this.outputPath);
+    const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+    const absolutePath = path.normalize(path.join(generatedRoot, normalized));
+
+    if (absolutePath !== generatedRoot && !absolutePath.startsWith(generatedRoot + path.sep)) {
+        throw new Error("Invalid path");
+    }
+
+    return {
+        absolutePath,
+        posixPath: path.posix.join("generated", normalized),
+    };
+}
+
 runTest(name?: string, slowMo?: number) {
 
     if (this.runningTest) {
 
-        getIO().emit("terminal", "\nA test is already running.\n");
+        getIO().emit("terminal", "\x1b[33m\nA test is already running.\x1b[0m\n");
 
         return;
     }
 
-    const fileName = name ? path.basename(name) : "current.spec.ts";
-    const filePath = path.posix.join("generated", fileName);
+    const relativePath = name ? name : "current.spec.ts";
 
-    if (!fs.existsSync(path.join(path.dirname(this.outputPath), fileName))) {
+    let absolutePath: string;
+    let filePath: string;
 
-        getIO().emit("terminal", `\nTest file not found: ${fileName}\n`);
+    try {
+        ({ absolutePath, posixPath: filePath } = this.resolveTestPath(relativePath));
+    } catch {
+        getIO().emit("terminal", `\x1b[31m\nInvalid test path: ${relativePath}\x1b[0m\n`);
+        return;
+    }
+
+    if (!fs.existsSync(absolutePath)) {
+
+        getIO().emit("terminal", `\x1b[31m\nTest file not found: ${relativePath}\x1b[0m\n`);
 
         return;
     }
@@ -102,16 +126,17 @@ runTest(name?: string, slowMo?: number) {
             stdio: "pipe",
             env: {
                 ...process.env,
-                PW_SLOW_MO: String(slowMoMs)
+                PW_SLOW_MO: String(slowMoMs),
+                FORCE_COLOR: "1"
             }
         }
     );
 
     if (slowMoMs > 0) {
-        getIO().emit("terminal", `\nSlow motion enabled (${slowMoMs}ms per step).\n`);
+        getIO().emit("terminal", `\x1b[36m\nSlow motion enabled (${slowMoMs}ms per step).\x1b[0m\n`);
     }
 
-    getIO().emit("test-started", { name: fileName });
+    getIO().emit("test-started", { name: relativePath });
 
     this.runningTest.stdout.on("data", (data) => {
 
@@ -135,7 +160,7 @@ runTest(name?: string, slowMo?: number) {
 
         getIO().emit("test-complete", {
             exitCode: code,
-            name: fileName
+            name: relativePath
         });
 
         this.runningTest = null;

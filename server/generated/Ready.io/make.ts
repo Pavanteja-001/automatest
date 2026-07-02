@@ -7,8 +7,7 @@ test('test', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Password' }).click();
   await page.getByRole('textbox', { name: 'Password' }).fill('Rajesh@123');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.getByRole('link', { description: 'Projects', exact: true }).click();
-  await page.getByRole('link', { name: '📁 Openplan application This' }).click();
-  await page.getByRole('main').click();
-  await page.getByRole('link', { description: 'Projects', exact: true }).click();
+  await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+  await page.getByRole('link', { name: 'My Day' }).click();
+  await page.getByRole('link', { name: 'Chat' }).click();
 });

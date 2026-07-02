@@ -114,3 +114,30 @@ export const updateFile = (
     });
   }
 };
+
+export const deleteNode = (
+  req: Request,
+  res: Response
+) => {
+  const nodePath = String(req.query.path ?? "");
+
+  if (!nodePath) {
+    return res.status(400).json({
+      success: false,
+      message: "Path is required.",
+    });
+  }
+
+  try {
+    filesystem.deleteNode(nodePath);
+
+    res.json({
+      success: true,
+    });
+  } catch {
+    res.status(400).json({
+      success: false,
+      message: "Unable to delete path.",
+    });
+  }
+};

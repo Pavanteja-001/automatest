@@ -46,7 +46,7 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
 
   return (
     <Editor
-      height="600px"
+      height="100%"
       defaultLanguage="typescript"
       theme="vs-dark"
       value={value}

@@ -8,6 +8,7 @@ interface Props {
   onRunTest: (name: string) => void;
   onCreateFolder: (name: string) => void;
   onCreateFile: (name: string) => void;
+  onDeleteNode: (path: string, type: "file" | "folder") => void;
 }
 
 export default function Sidebar({
@@ -18,6 +19,7 @@ export default function Sidebar({
   onRunTest,
   onCreateFolder,
   onCreateFile,
+  onDeleteNode,
 }: Props) {
   function handleNewFolder() {
     const name = window.prompt("New folder name:");
@@ -35,15 +37,35 @@ export default function Sidebar({
     onCreateFile(name);
   }
 
+  function handleDeleteNode(node: FileNode) {
+    const kind = node.type === "folder" ? "folder" : "file";
+    const confirmed = window.confirm(
+      `Delete ${kind} "${node.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    onDeleteNode(node.path, node.type);
+  }
+
+  function handleAddFile(node: FileNode) {
+    const name = window.prompt(`New file name in "${node.name}":`);
+
+    if (!name) return;
+
+    onCreateFile(`${node.path}/${name}`);
+  }
+
   return (
     <div
       style={{
-        width: 220,
-        borderRight: "1px solid #444",
+        width: 240,
+        borderRight: "1px solid #3c3c3c",
         background: "#1e1e1e",
-        color: "white",
-        padding: 10,
+        color: "#cccccc",
+        padding: "10px 8px",
         overflowY: "auto",
+        fontFamily: "system-ui, sans-serif",
       }}
     >
       <div
@@ -51,16 +73,36 @@ export default function Sidebar({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          padding: "0 4px 8px",
         }}
       >
-        <h3>Explorer</h3>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            opacity: 0.75,
+          }}
+        >
+          Explorer
+        </h3>
 
-        <div style={{ display: "flex", gap: 6 }}>
-          <button title="New File" onClick={handleNewFile}>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button
+            title="New File"
+            onClick={handleNewFile}
+            style={headerButtonStyle}
+          >
             + File
           </button>
 
-          <button title="New Folder" onClick={handleNewFolder}>
+          <button
+            title="New Folder"
+            onClick={handleNewFolder}
+            style={headerButtonStyle}
+          >
             + Folder
           </button>
         </div>
@@ -69,17 +111,24 @@ export default function Sidebar({
       <div
         onClick={onSelectDraft}
         style={{
-          padding: "6px 8px",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "5px 8px",
           borderRadius: 4,
           cursor: "pointer",
-          background: selected === null ? "#333" : "transparent",
+          fontSize: 13,
+          background: selected === null ? "#37373d" : "transparent",
         }}
       >
+        <span style={{ fontSize: 14 }}>📄</span>
         current.spec.ts (draft)
       </div>
 
       {tree.length === 0 && (
-        <p style={{ opacity: 0.6, fontSize: 13 }}>No saved tests yet.</p>
+        <p style={{ opacity: 0.6, fontSize: 13, padding: "6px 8px" }}>
+          No saved tests yet.
+        </p>
       )}
 
       <FileTree
@@ -87,7 +136,19 @@ export default function Sidebar({
         selected={selected}
         onOpenFile={onOpenFile}
         onRunTest={onRunTest}
+        onDeleteNode={handleDeleteNode}
+        onAddFile={handleAddFile}
       />
     </div>
   );
 }
+
+const headerButtonStyle = {
+  background: "transparent",
+  border: "1px solid #3c3c3c",
+  color: "#cccccc",
+  borderRadius: 4,
+  fontSize: 11,
+  padding: "3px 6px",
+  cursor: "pointer",
+};

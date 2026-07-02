@@ -13,6 +13,7 @@ import {
   createFile,
   readFile,
   updateFile,
+  deleteNode,
 } from "../controllers/filesystem.controller";
 
 const router = Router();
@@ -38,5 +39,7 @@ router.post("/fs/file", createFile);
 router.get("/fs/file", readFile);
 
 router.put("/fs/file", updateFile);
+
+router.delete("/fs/node", deleteNode);
 
 export default router;

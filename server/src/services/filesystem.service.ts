@@ -94,4 +94,18 @@ export class FilesystemService {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, content, "utf8");
   }
+
+  deleteNode(relativePath: string) {
+    const target = this.resolveSafe(relativePath);
+
+    if (target === this.rootPath) {
+      throw new Error("Cannot delete root");
+    }
+
+    if (!fs.existsSync(target)) {
+      throw new Error("Not found");
+    }
+
+    fs.rmSync(target, { recursive: true, force: true });
+  }
 }
