@@ -5,6 +5,7 @@ import socket from "../services/socket";
 
 import Toolbar from "../components/Toolbar";
 import Sidebar from "../components/Sidebar";
+import Tabs from "../components/Tabs";
 import Terminal from "../components/Terminal";
 import CodeEditor, { type CodeEditorHandle } from "../components/CodeEditor";
 import { writeTerminal } from "../services/terminal";
@@ -22,6 +23,7 @@ export default function Studio() {
   const [autoLogin, setAutoLogin] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(true);
   const [testRunning, setTestRunning] = useState(false);
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
   const editorRef = useRef<CodeEditorHandle>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{ path: string; code: string } | null>(null);
@@ -191,6 +193,27 @@ export default function Studio() {
     );
     setCode(res.data.code);
     setSelected(path);
+
+    setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+  }
+
+  function closeTab(path: string) {
+    const idx = openTabs.indexOf(path);
+
+    if (idx === -1) return;
+
+    const nextTabs = openTabs.filter((p) => p !== path);
+    setOpenTabs(nextTabs);
+
+    if (selected === path) {
+      const fallback = nextTabs[idx] ?? nextTabs[idx - 1];
+
+      if (fallback) {
+        openFile(fallback);
+      } else {
+        selectDraft();
+      }
+    }
   }
 
   async function createFolder(name: string) {
@@ -220,6 +243,10 @@ export default function Studio() {
 
     await api.delete("/playwright/fs/node", { params: { path: nodePath } });
 
+    setOpenTabs((prev) =>
+      prev.filter((p) => p !== nodePath && !(type === "folder" && p.startsWith(`${nodePath}/`)))
+    );
+
     if (affectsSelected) {
       setSelected(null);
       setCode("");
@@ -241,7 +268,10 @@ export default function Studio() {
 
     await api.post("/playwright/save", { name, code });
     await loadTree();
-    setSelected(name.endsWith(".spec.ts") ? name : `${name}.spec.ts`);
+
+    const finalName = name.endsWith(".spec.ts") ? name : `${name}.spec.ts`;
+    setSelected(finalName);
+    setOpenTabs((prev) => (prev.includes(finalName) ? prev : [...prev, finalName]));
   }
 
   return (
@@ -291,6 +321,14 @@ export default function Studio() {
             overflow: "hidden",
           }}
         >
+          <Tabs
+            openTabs={openTabs}
+            selected={selected}
+            onSelectTab={openFile}
+            onSelectDraft={selectDraft}
+            onCloseTab={closeTab}
+          />
+
           <div style={{ flex: 1, minHeight: 0 }}>
             <CodeEditor
               ref={editorRef}
