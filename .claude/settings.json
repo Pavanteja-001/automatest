@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsx *)",
+      "Bash(rm -f /Users/pavantejagurajapu/Downloads/playwright/automatest/server/verify_locator_scratch.ts /tmp/verify_locator.ts && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(npx playwright *)",
+      "Bash(xargs ls -la)",
+      "Bash(sort -k6,7)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
+    ]
+  }
+}

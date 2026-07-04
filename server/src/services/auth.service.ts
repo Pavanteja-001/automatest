@@ -60,6 +60,10 @@ export class AuthService {
     fs.writeFileSync(this.configPath, JSON.stringify(template, null, 2));
   }
 
+  getStorageStatePath(): string {
+    return this.stateFile;
+  }
+
   getBaseUrl(): string | undefined {
     if (!fs.existsSync(this.configPath)) return undefined;
 

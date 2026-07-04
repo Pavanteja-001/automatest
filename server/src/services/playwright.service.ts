@@ -4,6 +4,7 @@ import path from "path";
 import { getIO } from "../socket/socket";
 import { ChildProcessWithoutNullStreams } from "child_process";
 import { AuthService } from "./auth.service";
+import { applyLocatorResilience } from "../utils/locatorResilience";
 
 export class PlaywrightService {
   private outputPath = path.join(
@@ -30,7 +31,8 @@ export class PlaywrightService {
       fs.unlinkSync(this.outputPath);
     }
 
-    const args = ["playwright", "codegen", "--output", this.outputPath];
+    const storageStatePath = this.authService.getStorageStatePath();
+    const args = ["playwright", "codegen", "--output", this.outputPath, "--save-storage", storageStatePath];
 
     if (autoLogin) {
       getIO().emit("terminal", "\x1b[35m\nAuto Login: signing in before opening the recorder...\x1b[0m\n");
@@ -44,8 +46,16 @@ export class PlaywrightService {
         );
       } catch (err) {
         getIO().emit("terminal", `\x1b[31m\nAuto Login failed: ${(err as Error).message}\x1b[0m\n`);
-        getIO().emit("terminal", "\x1b[33mOpening the recorder without auto login.\x1b[0m\n");
+        getIO().emit(
+          "terminal",
+          "\x1b[33mOpening the recorder without auto login — log in manually in the recorder window; the real session will be captured automatically when you stop recording.\x1b[0m\n"
+        );
       }
+    } else {
+      getIO().emit(
+        "terminal",
+        "\x1b[36m\nLog in manually in the recorder window if the app requires it — the real browser session will be captured automatically when you stop recording.\x1b[0m\n"
+      );
     }
 
     const baseUrl = this.authService.getBaseUrl();
@@ -77,6 +87,28 @@ export class PlaywrightService {
 
       if (fs.existsSync(this.outputPath)) {
         code = fs.readFileSync(this.outputPath, "utf8");
+      }
+
+      if (code) {
+        let updatedCode = code;
+
+        if (!/test\.use\(\s*\{[^}]*storageState/.test(updatedCode) && fs.existsSync(storageStatePath)) {
+          updatedCode = updatedCode.replace(
+            /(import\s*\{[^}]*\}\s*from\s*['"]@playwright\/test['"];?\s*)/,
+            `$1\ntest.use({\n  storageState: ${JSON.stringify(storageStatePath)}\n});\n`
+          );
+        }
+
+        const { code: hardenedCode, warnings } = applyLocatorResilience(updatedCode);
+
+        if (hardenedCode !== code) {
+          code = hardenedCode;
+          fs.writeFileSync(this.outputPath, code);
+        }
+
+        for (const warning of warnings) {
+          getIO().emit("terminal", `\x1b[33m\n⚠ ${warning}\x1b[0m\n`);
+        }
       }
 
       getIO().emit("recording-complete", {
