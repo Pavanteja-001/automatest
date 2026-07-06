@@ -8,13 +8,20 @@ import Sidebar from "../components/Sidebar";
 import Tabs from "../components/Tabs";
 import Terminal from "../components/Terminal";
 import CodeEditor, { type CodeEditorHandle } from "../components/CodeEditor";
+import HeadedSessionViewer from "../components/HeadedSessionViewer";
 import { writeTerminal } from "../services/terminal";
 import type { FileNode } from "../components/FileTree";
+import type { User } from "../services/auth";
 
 const SLOW_MOTION_MS = 1000;
 const AUTO_SAVE_DELAY_MS = 500;
 
-export default function Studio() {
+interface Props {
+  user: User;
+  onLogout: () => Promise<void>;
+}
+
+export default function Studio({ user, onLogout }: Props) {
   const [code, setCode] = useState("");
   const [tree, setTree] = useState<FileNode[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -23,6 +30,7 @@ export default function Studio() {
   const [autoLogin, setAutoLogin] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(true);
   const [testRunning, setTestRunning] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const editorRef = useRef<CodeEditorHandle>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,6 +56,8 @@ export default function Studio() {
     loadTree();
     syncTestStatus();
 
+    socket.connect();
+
     socket.on("connect", () => {
       syncTestStatus();
     });
@@ -57,6 +67,7 @@ export default function Studio() {
     });
 
     socket.on("recording-complete", (data) => {
+      setRecording(false);
       setCode(data.code);
       setSelected(null);
     });
@@ -78,6 +89,7 @@ export default function Studio() {
 
     return () => {
       socket.removeAllListeners();
+      socket.disconnect();
 
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
@@ -136,6 +148,7 @@ export default function Studio() {
   }
 
   async function startRecording() {
+    setRecording(true);
     await api.post("/playwright/start", { autoLogin });
   }
 
@@ -293,6 +306,8 @@ export default function Studio() {
         onToggleHeaded={toggleHeaded}
         autoLogin={autoLogin}
         onToggleAutoLogin={toggleAutoLogin}
+        userEmail={user.email}
+        onLogout={onLogout}
       />
 
       <div
@@ -338,6 +353,12 @@ export default function Studio() {
           </div>
 
           <Terminal open={terminalOpen} running={testRunning} onStop={stopTest} />
+
+          <HeadedSessionViewer
+            visible={recording || (headed && testRunning)}
+            recording={recording}
+            onStop={recording ? stopTest : () => setHeaded(false)}
+          />
         </div>
       </div>
     </div>

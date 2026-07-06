@@ -1,19 +1,27 @@
+import "dotenv/config";
 import http from "http";
 import { Server } from "socket.io";
 
 import app from "./app";
 import { initializeSocket } from "./socket/socket";
+import { socketAuthMiddleware } from "./socket/socket-auth.middleware";
 import { AuthService } from "./services/auth.service";
+import { attachVncProxy } from "./vnc-proxy";
 
 new AuthService().ensureConfigTemplate();
 
 const server = http.createServer(app);
 
+attachVncProxy(app, server);
+
 const io = new Server(server, {
     cors: {
-        origin: "*"
+        origin: process.env.CORS_ORIGIN,
+        credentials: true
     }
 });
+
+io.use(socketAuthMiddleware);
 
 initializeSocket(io);
 
@@ -31,6 +39,8 @@ io.on("connection", (socket) => {
 
 });
 
-server.listen(3000, () => {
-    console.log("Server Running on 3000");
+const port = Number(process.env.PORT) || 3000;
+
+server.listen(port, () => {
+    console.log(`Server Running on ${port}`);
 });

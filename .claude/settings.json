@@ -5,7 +5,20 @@
       "Bash(rm -f /Users/pavantejagurajapu/Downloads/playwright/automatest/server/verify_locator_scratch.ts /tmp/verify_locator.ts && npx tsc --noEmit 2>&1 | head -50)",
       "Bash(npx playwright *)",
       "Bash(xargs ls -la)",
-      "Bash(sort -k6,7)"
+      "Bash(sort -k6,7)",
+      "Bash(which docker *)",
+      "Bash(docker --version)",
+      "Bash(npm --version)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(docker rm *)",
+      "Bash(docker run *)",
+      "Bash(brew services *)",
+      "Read(//opt/homebrew/opt/**)",
+      "Bash(open -Ra \"Docker\")",
+      "Bash(/opt/homebrew/opt/postgresql@18/bin/pg_isready)",
+      "Bash(pg_isready)"
     ],
     "additionalDirectories": [
       "/private/tmp"

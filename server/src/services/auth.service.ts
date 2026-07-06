@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { DATA_DIR } from "../config/paths";
 
 interface LoginConfig {
   loginUrl?: string;
@@ -39,8 +40,8 @@ const TOKEN_PATH_CANDIDATES = [
 ];
 
 export class AuthService {
-  private configPath = path.join(process.cwd(), "generated", "login.config.json");
-  private stateDir = path.join(process.cwd(), ".auth");
+  private configPath = path.join(DATA_DIR, "generated", "login.config.json");
+  private stateDir = path.join(DATA_DIR, ".auth");
   private stateFile = path.join(this.stateDir, "storage-state.json");
 
   ensureConfigTemplate() {

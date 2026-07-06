@@ -5,20 +5,22 @@ import { getIO } from "../socket/socket";
 import { ChildProcessWithoutNullStreams } from "child_process";
 import { AuthService } from "./auth.service";
 import { applyLocatorResilience } from "../utils/locatorResilience";
+import { DATA_DIR } from "../config/paths";
 
 export class PlaywrightService {
   private outputPath = path.join(
-    process.cwd(),
+    DATA_DIR,
     "generated",
     "current.spec.ts"
   );
 
   private runningTest: ChildProcessWithoutNullStreams | null = null;
+  private runningRecording: ChildProcessWithoutNullStreams | null = null;
   private isStarting = false;
   private authService = new AuthService();
 
   isRunning(): boolean {
-    return Boolean(this.runningTest) || this.isStarting;
+    return Boolean(this.runningTest) || Boolean(this.runningRecording) || this.isStarting;
   }
 
   async startRecording(autoLogin?: boolean) {
@@ -70,9 +72,12 @@ export class PlaywrightService {
       args,
       {
         shell: true,
-        stdio: "pipe"
+        stdio: "pipe",
+        detached: true
       }
     );
+
+    this.runningRecording = process;
 
     process.stdout.on("data", (data) => {
       getIO().emit("terminal", data.toString());
@@ -83,6 +88,7 @@ export class PlaywrightService {
     });
 
     process.on("close", () => {
+      this.runningRecording = null;
       let code = "";
 
       if (fs.existsSync(this.outputPath)) {
@@ -125,6 +131,18 @@ export class PlaywrightService {
     }
 
     return fs.readFileSync(this.outputPath, "utf8");
+  }
+
+  private resolveSafe(relativePath: string): string {
+    const generatedRoot = path.dirname(this.outputPath);
+    const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+    const absolutePath = path.normalize(path.join(generatedRoot, normalized));
+
+    if (absolutePath !== generatedRoot && !absolutePath.startsWith(generatedRoot + path.sep)) {
+      throw new Error("Invalid path");
+    }
+
+    return absolutePath;
   }
 
 private resolveTestPath(relativePath: string): { absolutePath: string; posixPath: string } {
@@ -202,6 +220,7 @@ async runTest(name?: string, slowMo?: number, headed?: boolean, autoLogin?: bool
         {
             shell: true,
             stdio: "pipe",
+            detached: true,
             env: {
                 ...process.env,
                 PW_SLOW_MO: String(slowMoMs),
@@ -258,29 +277,42 @@ async runTest(name?: string, slowMo?: number, headed?: boolean, autoLogin?: bool
 }
 
 stopTest() {
+    let stoppedSomething = false;
 
-    if (!this.runningTest || !this.runningTest.pid) {
-
-        getIO().emit("terminal", "\x1b[33m\nNo test is currently running.\x1b[0m\n");
-
-        return;
-    }
-
-    const pid = this.runningTest.pid;
-
-    getIO().emit("terminal", "\x1b[33m\nStopping test...\x1b[0m\n");
-
-    if (process.platform === "win32") {
-        // spawn used shell:true, so the tree (npx -> node -> browser) must be killed, not just the shell.
-        exec(`taskkill /PID ${pid} /T /F`);
-    } else {
-        try {
-            process.kill(-pid, "SIGTERM");
-        } catch {
-            this.runningTest.kill("SIGTERM");
+    if (this.runningTest && this.runningTest.pid) {
+        const pid = this.runningTest.pid;
+        getIO().emit("terminal", "\x1b[33m\nStopping test...\x1b[0m\n");
+        if (process.platform === "win32") {
+            exec(`taskkill /PID ${pid} /T /F`);
+        } else {
+            try {
+                process.kill(-pid, "SIGTERM");
+            } catch {
+                this.runningTest.kill("SIGTERM");
+            }
         }
+        stoppedSomething = true;
     }
 
+    if (this.runningRecording && this.runningRecording.pid) {
+        const pid = this.runningRecording.pid;
+        getIO().emit("terminal", "\x1b[33m\nStopping recording...\x1b[0m\n");
+        if (process.platform === "win32") {
+            exec(`taskkill /PID ${pid} /T /F`);
+        } else {
+            try {
+                process.kill(-pid, "SIGTERM");
+            } catch {
+                this.runningRecording.kill("SIGTERM");
+            }
+        }
+        this.runningRecording = null;
+        stoppedSomething = true;
+    }
+
+    if (!stoppedSomething) {
+        getIO().emit("terminal", "\x1b[33m\nNo active test or recording running.\x1b[0m\n");
+    }
 }
 
 saveTest(name: string, code: string) {

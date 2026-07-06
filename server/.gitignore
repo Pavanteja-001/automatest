@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+
 # Auto Login: derived storage state containing a live session token
 .auth
 
@@ -28,3 +31,5 @@ generated/login.config.json
 *.njsproj
 *.sln
 *.sw?
+
+/src/generated/prisma

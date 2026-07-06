@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { DATA_DIR } from "../config/paths";
 
 export interface FileNode {
   name: string;
@@ -9,7 +10,7 @@ export interface FileNode {
 }
 
 export class FilesystemService {
-  private rootPath = path.join(process.cwd(), "generated");
+  private rootPath = path.join(DATA_DIR, "generated");
 
   private resolveSafe(relativePath: string): string {
     const target = path.normalize(path.join(this.rootPath, relativePath));

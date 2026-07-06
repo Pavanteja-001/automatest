@@ -9,6 +9,8 @@ interface Props {
   onToggleHeaded: () => void;
   autoLogin: boolean;
   onToggleAutoLogin: () => void;
+  userEmail: string;
+  onLogout: () => void;
 }
 
 export default function Toolbar({
@@ -22,6 +24,8 @@ export default function Toolbar({
   onToggleHeaded,
   autoLogin,
   onToggleAutoLogin,
+  userEmail,
+  onLogout,
 }: Props) {
   return (
     <div
@@ -92,6 +96,11 @@ export default function Toolbar({
       >
         🔐 Auto Login
       </button>
+
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ color: "#999", fontSize: 13 }}>{userEmail}</span>
+        <button onClick={onLogout}>Log out</button>
+      </div>
     </div>
   );
 }
